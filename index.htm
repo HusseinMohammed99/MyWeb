@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Realistic 3D Christmas Tree</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin: 0; overflow: hidden; background: #000; }
+</style>
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/RGBELoader.js"></script>
+
+<script>
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x000000, 8, 35);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 4, 12);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// HDR Environment (انعكاسات واقعية)
+new THREE.RGBELoader()
+.setPath('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/')
+.load('studio_small_09_1k.hdr', texture => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = texture;
+});
+
+// Lights
+const key = new THREE.SpotLight(0xffffff, 2);
+key.position.set(5, 12, 6);
+key.angle = Math.PI / 6;
+key.castShadow = true;
+scene.add(key);
+
+const fill = new THREE.PointLight(0xffffff, 0.6);
+fill.position.set(-4, 6, 4);
+scene.add(fill);
+
+const rim = new THREE.PointLight(0x88ffaa, 0.8);
+rim.position.set(0, 6, -6);
+scene.add(rim);
+
+// Tree material (غير لامع – واقعي)
+const treeMat = new THREE.MeshStandardMaterial({
+    color: 0x0b4d2c,
+    roughness: 0.9,
+    metalness: 0.0
+});
+
+// Tree
+const tree = new THREE.Group();
+
+for (let i = 0; i < 6; i++) {
+    const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(3.2 - i * 0.45, 3.2, 64),
+        treeMat
+    );
+    cone.position.y = i * 1.1;
+    cone.castShadow = true;
+    tree.add(cone);
+}
+scene.add(tree);
+
+// Trunk
+const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.5, 1.6, 32),
+    new THREE.MeshStandardMaterial({
+        color: 0x4a2e1a,
+        roughness: 1
+    })
+);
+trunk.position.y = -1;
+trunk.castShadow = true;
+scene.add(trunk);
+
+// Ornaments (انعكاس حقيقي)
+for (let i = 0; i < 30; i++) {
+    const ball = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 32, 32),
+        new THREE.MeshStandardMaterial({
+            color: new THREE.Color(`hsl(${Math.random()*360},80%,60%)`),
+            metalness: 0.8,
+            roughness: 0.1
+        })
+    );
+    ball.position.set(
+        (Math.random()-0.5)*4,
+        Math.random()*4,
+        (Math.random()-0.5)*4
+    );
+    ball.castShadow = true;
+    scene.add(ball);
+}
+
+// Star
+const star = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.45),
+    new THREE.MeshStandardMaterial({
+        color: 0xffd700,
+        emissive: 0xffcc55,
+        emissiveIntensity: 2,
+        metalness: 0.5,
+        roughness: 0.2
+    })
+);
+star.position.y = 6.2;
+scene.add(star);
+
+// Animation
+function animate() {
+    requestAnimationFrame(animate);
+
+    tree.rotation.y += 0.001;
+    star.rotation.y += 0.005;
+
+    camera.position.x = Math.sin(Date.now()*0.0002)*1.2;
+    camera.lookAt(0, 3, 0);
+
+    renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+
+</body>
+</html>
